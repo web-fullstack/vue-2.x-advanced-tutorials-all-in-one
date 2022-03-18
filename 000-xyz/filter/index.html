@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!-- <html lang="en-us" manifest="manifest.appcache"> -->
+<!-- <html lang="zh-Hans" manifest="manifest.appcache"> -->
+<html lang="zh-Hans">
+  <head>
+    <title>vue filter all in one</title>
+    <!-- <script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script> -->
+    <!-- https://cdn.xgqfrms.xyz/vue/2.6.10/vue.js -->
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.xgqfrms.xyz/vue/2.6.10/vue.js"></script>
+  </head>
+  <body>
+
+  <h1>vue filter all in onee</h1>
+
+  <div id="app">
+    <pre>双花括号插值 </pre>
+    <h1 class="h1" style="color: #f0f;">{{ message | getCapitalize}}</h1>
+    <pre>v-bind 表达式 </pre>
+    <h1 class="h1" v-bind:title="message | getCapitalize">{{ message }}</h1>
+  </div>
+  <pre>
+    <code>
+{{ message | getCapitalize}}
+
+v-bind:title="message | getCapitalize"
+    </code>
+  </pre>
+  <script src="./app.js"></script>
+  </body>
+</html>

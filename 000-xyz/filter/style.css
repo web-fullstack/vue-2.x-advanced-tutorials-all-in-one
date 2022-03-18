@@ -1,0 +1,19 @@
+.h1 {
+  background: rgba(0, 255, 0, 0.7);
+  /*   color:rgba(255,0,255,0.7); */
+}
+
+h2 {
+  background: rgba(0, 0, 0, 0.7);
+  color: rgba(0, 255, 0, 1);
+}
+
+code {
+  display: block;
+  background: rgba(0, 0, 0, 1);
+  color: rgba(0, 255, 0);
+  margin-top: 30px;
+  padding: 20px;
+  min-with: 300px;
+  min-height: 100px;
+}
