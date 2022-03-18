@@ -18,12 +18,25 @@
     <h1 class="h1" style="color: #f0f;">{{ message | getCapitalize}}</h1>
     <pre>v-bind 表达式 </pre>
     <h1 class="h1" v-bind:title="message | getCapitalize">{{ message }}</h1>
+    <pre>input & v-bind:value="message | getCapitalize" </pre>
+    <input class="h1" v-bind:value="message | getCapitalize">
+    <hr>
+    <p>:value="message" &lt; v-bind:value="message | getCapitalize"</p>
+    <input class="h1" :value="message" v-bind:value="message | getCapitalize">
+    <p>v-model="message" &gt; v-bind:value="message | getCapitalize"</p>
+    <input class="h1" v-model="message" v-bind:value="message | getCapitalize">
+<!--     <input class="h1" v-bind:value="message | getCapitalize" v-model="message" > -->
+    <p>v-bind:value="message | getCapitalize" &lt; :value="message"</p>
+    <input class="h1" v-bind:value="message | getCapitalize" :value="message">
+    <p> 结论: 多个 bind 后面大覆盖前面的，除了 v-model (优先级最高)</p>
   </div>
   <pre>
     <code>
 {{ message | getCapitalize}}
 
 v-bind:title="message | getCapitalize"
+
+v-bind:value="message | getCapitalize"
     </code>
   </pre>
   <script src="./app.js"></script>
