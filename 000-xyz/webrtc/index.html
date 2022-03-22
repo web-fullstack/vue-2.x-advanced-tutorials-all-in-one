@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<title>safety-canvas</title>
+	<!-- 需要运行在 server 中，并且要开启 https:// 服务 -->
+	<!--  https://xgqfrms.github.io/HTML5/Canvas/safety-canvas.html-->
+	<!-- 仅在 chrome/chrome canary/opera等(webkit) 浏览器中可以使用!(低层调用camera的API 针对，不同浏览器的实现不同！) -->
+
+	<script src="https://html5.xgqfrms.xyz/lib/stats.js"></script>
+</head>
+<body>
+	<!-- 
+		纯 JS 的“防盗”,防盗监控系统 
+		https://www.cnblogs.com/vajoy/p/5656439.html
+	-->
+	<h1><span id="video_error"></span></h1>
+	<!--  -->
+	<script>
+		var videoError = document.getElementById("video_error");
+		if (true) {
+			// UA : webkit check
+			videoError.innerHTML = "It's really super cool, you are using the webkit kernel browser!"
+		} else {
+			videoError.innerHTML = "<mark>Error:</mark> It's really sorry, please using the webkit kernel browser for better exprience!";
+			alert("video error:[object NavigatorUserMediaError]");
+		}
+	</script>
+	<!--  -->
+	<div></div>
+	<video width="640" height="480" autoplay></video>
+	<canvas width="640" height="480"></canvas>
+	<canvas width="640" height="480"></canvas>
+
+	<audio src="https://html5.xgqfrms.xyz/Canvas/alarm.wav" type="audio/wav" autoplay="autoplay" loop="loop"></audio>
+	<!-- <audio src="alarm.wav" type="audio/wav" autoplay="autoplay" loop="loop"></audio> -->
+	<script>
+	    var video = document.querySelector('video');
+	    var audio = document.querySelector('audio');
+	    var canvas = document.querySelectorAll('canvas')[0];
+	    var canvasForDiff = document.querySelectorAll('canvas')[1];
+
+	    // video捕获摄像头画面
+      /*
+      navigator.webkitGetUserMedia({
+          video: true
+      }, success, error);
+      */
+      navigator.mediaDevices.getUserMedia({
+          video: true
+      }, success, error);
+
+	    function success(stream) {
+          console.log('stream', stream);
+          // MediaStream {id: 'EOubsqR09cEzKlHd9RTr4BjrEXDoIkhELXB0', active: true, onaddtrack: null, onremovetrack: null, onactive: null, …}
+          video.srcObject = stream;
+          video.onloadedmetadata = function(e) {
+            video.play();
+          };
+	        // video.src = window.URL.createObjectURL(stream);
+          // video.src = window.URL.createObjectURL(new Blob([stream]));
+          // video.src = window.URL.createObjectURL(new Blob([stream], {type: "application/stream"}));
+	        // video.src = stream;
+	        // video.src = new MediaStream(stream);
+          // Uncaught TypeError: Failed to execute 'createObjectURL' on 'URL': Overload resolution failed.
+	        // video.play();
+	    }
+
+	    function error(err) {
+	        alert('video error: ' + err)
+	    }
+
+	    //canvas
+	    var context = canvas.getContext('2d'),
+	        diffCtx = canvasForDiff.getContext('2d');
+	    //将第二个画布混合模式设为“差异”
+	    diffCtx.globalCompositeOperation = 'difference';
+
+	    var preFrame,   //前一帧
+	        curFrame;   //当前帧
+
+	    var diffFrame;  //存放差异帧的imageData
+
+	    //捕获并保存帧内容
+	    function captureAndSaveFrame(){
+	        preFrame = curFrame;
+	        context.drawImage(video, 0, 0, 640, 480);
+	        curFrame = canvas.toDataURL();  //转为base64并保存
+	    }
+
+	    //绘制base64图像到画布上
+	    function drawImg(src, ctx){
+	        ctx = ctx || diffCtx;
+	        var img = new Image();
+	        img.src = src;
+	        ctx.drawImage(img, 0, 0, 640, 480);
+	    }
+
+	    //渲染前后两帧差异
+	    function renderDiff(){
+	        diffCtx.clearRect(0, 0, 640, 480);
+	        drawImg(preFrame);
+	        drawImg(curFrame);
+	        diffFrame = diffCtx.getImageData( 0, 0, 640, 480 );  //捕获差异帧的imageData对象
+	    }
+
+	    //计算差异
+	    function calcDiff(){
+	        if(!diffFrame) return 0;
+	        var cache = arguments.callee,
+	            count = 0;
+	        cache.total = cache.total || 0; //整个画布都是白色时所有像素的值的总和
+	        for (var i = 0, l = diffFrame.width * diffFrame.height * 4; i < l; i += 4) {
+	            count += diffFrame.data[i] + diffFrame.data[i + 1] + diffFrame.data[i + 2];
+	            if(!cache.isLoopEver){  //只需在第一次循环里执行
+	                cache.total += 255 * 3;   //单个白色像素值
+	            }
+	        }
+	        cache.isLoopEver = true;
+	        count *= 3;  //亮度放大
+	        //返回“差异画布高亮部分像素总值”占“画布全亮情况像素总值”的比例
+	        return Number(count/cache.total).toFixed(2);
+	    }
+
+	    //播放音频
+	    function fireAlarm(){
+	        audio.play()
+	    }
+
+
+	    //定时捕获
+	    function timer(delta){
+	        setTimeout(function(){
+	            captureAndSaveFrame();
+	            if(preFrame && curFrame){
+	                renderDiff();
+	                if(calcDiff() > 0.2){  //监控到异常
+	                    //发日记
+	                    submit();
+	                    //播放音频告警
+	                    fireAlarm();
+	                }
+	            }
+	            timer(delta)
+	        }, delta || 500);
+	    }
+
+	    setTimeout(timer, 60000 * 10);  //设定打开页面十分钟后才开始监控
+
+
+	    //异常图片上传处理
+	    function submit(){
+	        var cache = arguments.callee,
+	            now = Date.now();
+	        if(cache.reqTime && (now - cache.reqTime < 5000)) return;  //日记创建最小间隔为5秒
+
+	        cache.reqTime = now;
+
+	        //ajax 提交form
+	        $.ajax({
+	            url : 'http://i.cnblogs.com/EditDiary.aspx?opt=1',
+	            type : "POST",
+	            timeout : 5000,
+	            data : {
+	                '__VIEWSTATE': '',
+	                '__VIEWSTATEGENERATOR': '4773056F',
+	                'Editor$Edit$txbTitle': '告警' + Date.now(),
+	                'Editor$Edit$EditorBody': '<img src="' + curFrame + '" />',
+	                'Editor$Edit$lkbPost': '保存'
+	            },
+	            success: function(){
+	                console.log('submit done')
+	            },
+	            error: function(err){
+	                cache.reqTime = 0;
+	                console.log('error: ' + err)
+	            }
+	        });
+	    }
+	</script>
+	<!-- stats.min.js -->
+	<!-- <script src="../lib/stats.js"></script> -->
+	<!-- <script src="https://html5.xgqfrms.xyz/lib/stats.min.js"></script> -->
+	<script>
+		var stats = new Stats();
+		stats.showPanel(1); // 0: fps, 1: ms, 2: mb, 3+: custom
+		document.body.appendChild(stats.dom);
+		// 被监测的Canvas 对象
+		var canvas = document.createElement('canvas');
+		canvas.width = 100;
+		canvas.height = 100;
+		document.body.appendChild(canvas);
+		// document.getElementsByTagName(canvas).style.border="1px solid #f00";
+		var context = canvas.getContext('2d');
+		context.fillStyle = 'rgba(255,0,255,0.3)';
+		// 
+		function animate() {			
+		    stats.begin();
+		    // monitored code goes here
+		    var time = performance.now() / 1000;
+			context.clearRect( 0, 0, 100, 100 );
+		    // 
+		    for ( var i = 0; i < 2000; i ++ ) {
+				var x = Math.cos( time + i * 0.01 ) * 20 + 50;
+				var y = Math.sin( time + i * 0.01234 ) * 20 + 50;
+				context.beginPath();
+				context.arc( x, y, 5, 0, Math.PI * 1, true );
+				context.fill();
+			}
+		    stats.end();
+		    requestAnimationFrame( animate );
+		}
+		requestAnimationFrame( animate );
+	</script>
+</body>
+</html>
